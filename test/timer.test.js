@@ -26,17 +26,13 @@ test("enchaîne immédiatement les étapes automatiques", () => {
   assert.equal(snapshot.remainingMs, 5_000);
 });
 
-test("applique la transition par défaut aux étapes qui n'en définissent pas", () => {
+test("refuse les étapes qui n'ont pas de transition effective", () => {
   const data = routine([
     { id: "A", label: "A", duration: 5 },
     { id: "B", label: "B", duration: 5 },
   ]);
   data.defaultTransition = { mode: "manual" };
-  const timer = new TimerEngine(data);
-
-  timer.start(0);
-
-  assert.equal(timer.tick(5_000).state, TIMER_STATES.WAITING_MANUAL);
+  assert.throws(() => new TimerEngine(data), /transition.mode/);
 });
 
 test("attend GO lors d'une transition manuelle", () => {

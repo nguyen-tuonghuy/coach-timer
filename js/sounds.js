@@ -50,19 +50,22 @@ export class SoundPlayer {
   }
 
   playCountdown(second) {
-    const frequency = { 3: 660, 2: 740, 1: 880 }[second];
-    if (frequency) this._tone(frequency, 0.07);
+    if ([3, 2, 1].includes(second)) this._tone(880, 0.08);
   }
 
   playStepEnd() {
-    this._tone(520, 0.09);
-    this._tone(740, 0.13, 0.11);
+    this._tone(440, 0.6);
+  }
+
+  playStepStart() {
+    this._tone(660, 0.07);
+    this._tone(880, 0.12, 0.1);
   }
 
   playSessionEnd() {
-    this._tone(523, 0.12);
-    this._tone(659, 0.12, 0.14);
-    this._tone(784, 0.2, 0.28);
+    this._tone(523, 0.16);
+    this._tone(659, 0.16, 0.2);
+    this._tone(1047, 0.45, 0.4);
   }
 
   _tone(frequency, duration, offset = 0) {

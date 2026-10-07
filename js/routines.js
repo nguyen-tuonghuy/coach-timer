@@ -35,27 +35,6 @@ function normalizeTransition(transition, path) {
   return { mode: transition.mode };
 }
 
-export function resolveStepTransition(routine, step) {
-  if (step.transition) return step.transition;
-  if (routine.defaultTransition) return routine.defaultTransition;
-  throw new TypeError(
-    "Transition manquante : choisissez une transition par défaut pour la routine ou définissez une transition sur l'étape héritée.",
-  );
-}
-
-function normalizeStepTransition(step, defaultTransition, stepPath) {
-  if (step.transition == null) {
-    if (defaultTransition == null) {
-      throw new TypeError(
-        "Transition manquante : choisissez une transition par défaut pour la routine ou définissez une transition sur l'étape héritée.",
-      );
-    }
-    return null;
-  }
-
-  return normalizeTransition(step.transition, `${stepPath}.transition`);
-}
-
 export function normalizeRoutine(routine) {
   if (!routine || typeof routine !== "object") {
     throw new TypeError("La routine doit être un objet.");
@@ -108,7 +87,7 @@ export function normalizeRoutine(routine) {
             label: requireText(step.label, `${stepPath}.label`),
             duration: requireDuration(step.duration, `${stepPath}.duration`),
             type: step.type == null ? "other" : requireText(step.type, `${stepPath}.type`),
-            transition: normalizeStepTransition(step, defaultTransition, stepPath),
+            transition: normalizeTransition(step.transition, `${stepPath}.transition`),
           };
         }),
       };
@@ -131,7 +110,7 @@ export function expandRoutine(routine) {
           repeatIndex,
           repeatCount: block.repeat,
           stepIndex,
-          step: { ...step, transition: resolveStepTransition(normalized, step) },
+          step,
         });
       });
     }
@@ -150,8 +129,8 @@ export const DEMO_ROUTINES = Object.freeze([
         id: "auto-block",
         repeat: 2,
         steps: [
-          { id: "auto-work", label: "Travail", duration: 5, type: "work" },
-          { id: "auto-rest", label: "Repos", duration: 5, type: "rest" },
+          { id: "auto-work", label: "Travail", duration: 5, type: "work", transition: { mode: "auto" } },
+          { id: "auto-rest", label: "Repos", duration: 5, type: "rest", transition: { mode: "auto" } },
         ],
       },
     ],
@@ -165,8 +144,8 @@ export const DEMO_ROUTINES = Object.freeze([
         id: "manual-block",
         repeat: 2,
         steps: [
-          { id: "player-a", label: "Joueur A", duration: 5, type: "work" },
-          { id: "player-b", label: "Joueur B", duration: 5, type: "work" },
+          { id: "player-a", label: "Joueur A", duration: 5, type: "work", transition: { mode: "manual" } },
+          { id: "player-b", label: "Joueur B", duration: 5, type: "work", transition: { mode: "manual" } },
         ],
       },
     ],
@@ -187,7 +166,7 @@ export const DEMO_ROUTINES = Object.freeze([
             type: "work",
             transition: { mode: "delay", duration: 3 },
           },
-          { id: "workshop-b", label: "Atelier B", duration: 5, type: "work" },
+          { id: "workshop-b", label: "Atelier B", duration: 5, type: "work", transition: { mode: "auto" } },
         ],
       },
     ],

@@ -2,55 +2,36 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { TimerEngine, TIMER_STATES } from "../js/timer.js";
-import { expandRoutine, normalizeRoutine, resolveStepTransition } from "../js/routines.js";
-import { addStep, createBlock, createRoutine } from "../js/storage.js";
+import { expandRoutine, normalizeRoutine } from "../js/routines.js";
+import { addStep, createRoutine, setDefaultTransition } from "../js/storage.js";
 
-test("fait suivre immédiatement les étapes héritées quand le défaut change", () => {
+test("conserve les transitions effectives à l'expansion", () => {
   const routine = createRoutine();
-  const step = routine.blocks[0].steps[0];
-  assert.equal(step.transition, null);
-
-  routine.defaultTransition = { mode: "manual" };
-  assert.deepEqual(resolveStepTransition(routine, step), { mode: "manual" });
-
-  routine.defaultTransition = { mode: "auto" };
-  assert.deepEqual(resolveStepTransition(routine, step), { mode: "auto" });
-});
-
-test("conserve une surcharge explicite malgré le changement du défaut", () => {
-  const routine = createRoutine();
-  const step = routine.blocks[0].steps[0];
-  step.transition = { mode: "delay", duration: 4 };
-  routine.defaultTransition = { mode: "manual" };
-  assert.deepEqual(resolveStepTransition(routine, step), { mode: "delay", duration: 4 });
-});
-
-test("résout un héritage temporisé avec sa durée lors de l'expansion", () => {
-  const routine = createRoutine();
-  routine.defaultTransition = { mode: "delay", duration: 8 };
-  const { timeline } = expandRoutine(routine);
-  assert.deepEqual(timeline[0].step.transition, { mode: "delay", duration: 8 });
-});
-
-test("mélange étapes héritées et surchargées dans la même séance", () => {
-  const routine = createRoutine();
-  routine.defaultTransition = { mode: "manual" };
-  routine.blocks[0].steps[0].transition = null;
-  addStep(routine.blocks[0]);
+  setDefaultTransition(routine, { mode: "manual" });
+  addStep(routine.blocks[0], routine.defaultTransition);
   routine.blocks[0].steps[1].transition = { mode: "auto" };
-  addStep(routine.blocks[0]);
-  routine.blocks[0].steps[2].transition = { mode: "delay", duration: 3 };
+  addStep(routine.blocks[0], routine.defaultTransition);
 
-  const timer = new TimerEngine(routine);
-  timer.start(0);
-  assert.equal(timer.getSnapshot(0).current.step.transition.mode, "manual");
-  assert.equal(timer.next(0).current.step.transition.mode, "auto");
-  assert.deepEqual(timer.next(0).current.step.transition, { mode: "delay", duration: 3 });
-  assert.equal(timer.next(0).state, TIMER_STATES.FINISHED);
+  const { timeline } = expandRoutine(routine);
+  assert.deepEqual(timeline.map(({ step }) => step.transition), [
+    { mode: "manual" },
+    { mode: "auto" },
+    { mode: "manual" },
+  ]);
 });
 
-test("refuse le lancement d'une routine dont un héritage est non résoluble", () => {
-  assert.throws(() => new TimerEngine(createRoutine()), /Transition manquante/);
+test("conserve la durée d'un délai copié", () => {
+  const routine = createRoutine();
+  setDefaultTransition(routine, { mode: "delay", duration: 8 });
+  addStep(routine.blocks[0], routine.defaultTransition);
+
+  const normalized = normalizeRoutine(routine);
+  assert.deepEqual(normalized.blocks[0].steps[0].transition, { mode: "delay", duration: 8 });
+  assert.deepEqual(normalized.blocks[0].steps[1].transition, { mode: "delay", duration: 8 });
+});
+
+test("refuse le lancement d'une routine contenant une étape vide", () => {
+  assert.throws(() => new TimerEngine(createRoutine()), /transition.mode/);
 });
 
 test("accepte une routine sans défaut lorsque toutes les étapes sont explicites", () => {

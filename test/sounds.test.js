@@ -13,10 +13,10 @@ class FakeAudioContext {
 
   createOscillator() {
     const oscillator = {
-      frequency: { setValueAtTime: () => {} },
+      frequency: { setValueAtTime: (value) => { oscillator.frequencyValue = value; } },
       connect: () => {},
-      start: () => {},
-      stop: () => {},
+      start: (time) => { oscillator.startTime = time; },
+      stop: (time) => { oscillator.stopTime = time; },
     };
     this.oscillators.push(oscillator);
     return oscillator;
@@ -30,14 +30,46 @@ class FakeAudioContext {
   }
 }
 
-test("joue des séquences distinctes pour la fin d'étape et de séance", () => {
+function pattern(player) {
+  return player.context.oscillators.map((oscillator) => ({
+    frequency: oscillator.frequencyValue,
+    start: oscillator.startTime,
+    duration: Number((oscillator.stopTime - oscillator.startTime).toFixed(2)),
+  }));
+}
+
+test("joue trois bips de compte à rebours identiques", () => {
   const player = new SoundPlayer({ AudioContextClass: FakeAudioContext });
   player.playCountdown(3);
-  assert.equal(player.context.oscillators.length, 1);
+  player.playCountdown(2);
+  player.playCountdown(1);
+  assert.deepEqual(pattern(player), [
+    { frequency: 880, start: 0, duration: 0.08 },
+    { frequency: 880, start: 0, duration: 0.08 },
+    { frequency: 880, start: 0, duration: 0.08 },
+  ]);
+});
+
+test("joue un signal de fin d'intervalle unique et plus long", () => {
+  const player = new SoundPlayer({ AudioContextClass: FakeAudioContext });
   player.playStepEnd();
-  assert.equal(player.context.oscillators.length, 3);
+  assert.deepEqual(pattern(player), [{ frequency: 440, start: 0, duration: 0.6 }]);
+});
+
+test("distingue le départ d'étape et la fin de séance", () => {
+  const player = new SoundPlayer({ AudioContextClass: FakeAudioContext });
+  player.playStepStart();
+  assert.deepEqual(pattern(player), [
+    { frequency: 660, start: 0, duration: 0.07 },
+    { frequency: 880, start: 0.1, duration: 0.12 },
+  ]);
+
   player.playSessionEnd();
-  assert.equal(player.context.oscillators.length, 6);
+  assert.deepEqual(pattern(player).slice(2), [
+    { frequency: 523, start: 0, duration: 0.16 },
+    { frequency: 659, start: 0.2, duration: 0.16 },
+    { frequency: 1047, start: 0.4, duration: 0.45 },
+  ]);
 });
 
 test("désactive les sons et mémorise le réglage", () => {

@@ -1,7 +1,7 @@
 import { DEMO_ROUTINES, normalizeRoutine } from "./routines.js";
 
 const STORAGE_KEY = "coach-timer.routines";
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -13,14 +13,33 @@ function getStorage(storage) {
   throw new Error("Le stockage local n'est pas disponible.");
 }
 
-function migrateRoutine(routine) {
+function copyTransition(transition) {
+  return transition ? { ...transition } : null;
+}
+
+function migrateV1Routine(routine) {
+  const defaultTransition = routine.defaultTransition ?? { mode: "auto" };
   return {
     ...routine,
-    defaultTransition: routine.defaultTransition ?? { mode: "auto" },
+    defaultTransition,
     blocks: (routine.blocks ?? []).map((block) => ({
       ...block,
       steps: (block.steps ?? []).map((step) =>
-        step.transition === undefined ? { ...step, transition: null } : step,
+        step.transition == null ? { ...step, transition: copyTransition(defaultTransition) } : step,
+      ),
+    })),
+  };
+}
+
+function migrateV2Routine(routine) {
+  return {
+    ...routine,
+    blocks: (routine.blocks ?? []).map((block) => ({
+      ...block,
+      steps: (block.steps ?? []).map((step) =>
+        step.transition == null
+          ? { ...step, transition: copyTransition(routine.defaultTransition) }
+          : step,
       ),
     })),
   };
@@ -31,8 +50,12 @@ function parseRoutines(serialized) {
 
   try {
     const data = JSON.parse(serialized);
-    if (!Array.isArray(data?.routines) || ![1, STORAGE_VERSION].includes(data.version)) return [];
-    const source = data.version === 1 ? data.routines.map(migrateRoutine) : data.routines;
+    if (!Array.isArray(data?.routines) || ![1, 2, STORAGE_VERSION].includes(data.version)) return [];
+    const source = data.version === 1
+      ? data.routines.map(migrateV1Routine)
+      : data.version === 2
+        ? data.routines.map(migrateV2Routine)
+        : data.routines;
     return source.map(normalizeRoutine);
   } catch {
     return [];
@@ -69,28 +92,39 @@ export function initializeRoutines(storage) {
   return saveRoutines(DEMO_ROUTINES, target);
 }
 
-export function createStep(label = "Étape 1") {
+export function createStep(defaultTransition, label = "Étape 1") {
   return {
     id: makeId("step"),
     label,
     duration: 30,
     type: "work",
-    transition: null,
+    transition: copyTransition(defaultTransition),
   };
 }
 
-export function createBlock() {
+export function createBlock(defaultTransition) {
   return {
     id: makeId("block"),
     repeat: 1,
-    steps: [createStep()],
+    steps: [createStep(defaultTransition)],
   };
 }
 
-export function addStep(block) {
-  const step = createStep(`Étape ${block.steps.length + 1}`);
+export function addStep(block, defaultTransition) {
+  const step = createStep(defaultTransition, `Étape ${block.steps.length + 1}`);
   block.steps.push(step);
   return step;
+}
+
+export function setDefaultTransition(routine, transition) {
+  routine.defaultTransition = copyTransition(transition);
+  if (!routine.defaultTransition) return;
+
+  routine.blocks.forEach((block) => {
+    block.steps.forEach((step) => {
+      if (!step.transition) step.transition = copyTransition(routine.defaultTransition);
+    });
+  });
 }
 
 export function createRoutine(name = "Nouvelle routine") {
@@ -98,7 +132,7 @@ export function createRoutine(name = "Nouvelle routine") {
     id: makeId("routine"),
     name,
     defaultTransition: null,
-    blocks: [createBlock()],
+    blocks: [createBlock(null)],
   };
 }
 

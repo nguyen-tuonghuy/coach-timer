@@ -27,7 +27,7 @@ Les données restent dans `localStorage`, sans compte ni serveur.
 
 ## Sons
 
-Le lecteur émet des signaux à 3, 2 et 1 seconde, puis des sons distincts à la fin d'une étape et de la séance. Le bouton « Son activé / désactivé » mémorise ce réglage localement. Certains navigateurs demandent une première interaction avec le lecteur avant d'autoriser le son.
+Le lecteur utilise quatre signaux distincts : un bip court identique à 3, 2 et 1 seconde, une tonalité longue à la fin d'un intervalle, un double bip ascendant au départ après GO ou une transition temporisée, puis un motif de trois notes pour la fin de séance. Le bouton « Son activé / désactivé » mémorise ce réglage localement. Certains navigateurs demandent une première interaction avec le lecteur avant d'autoriser le son.
 
 ## Tester le moteur
 
@@ -37,7 +37,7 @@ npm test
 
 ## Modèle de données
 
-Une routine contient des blocs répétables. `defaultTransition` reste `null` tant que l'utilisateur n'a pas choisi de transition. Une étape avec `transition: null` hérite de la transition par défaut ; elle ne porte une valeur `auto`, `manual` ou `delay` que si l'utilisateur la surcharge explicitement :
+Une routine contient des blocs répétables. `defaultTransition` reste `null` tant que l'utilisateur n'a pas choisi de transition. Il sert uniquement à pré-sélectionner les nouvelles étapes. Chaque étape enregistrable porte sa transition effective :
 
 ```js
 {
@@ -52,10 +52,10 @@ Une routine contient des blocs répétables. `defaultTransition` reste `null` ta
       label: "Travail",
       duration: 20,
       type: "work",
-      transition: null
+      transition: { mode: "manual" }
     }]
   }]
 }
 ```
 
-La transition effective d'une étape est résolue au lancement : la surcharge de l'étape si elle existe, sinon `routine.defaultTransition`. L'enregistrement et le lancement sont refusés si une étape héritée ne peut pas résoudre sa transition. `type` est normalisé vers `"other"` lorsqu'il est absent. Les anciennes données sans `defaultTransition` sont migrées vers `{ mode: "auto" }`. Les durées sont exprimées en secondes dans les routines et en millisecondes dans le moteur.
+Lors du premier choix d'un défaut, les étapes encore vides reçoivent une copie de cette transition. Les changements ultérieurs du défaut n'affectent jamais les étapes déjà définies. L'enregistrement et le lancement sont refusés si une étape reste sans transition. `type` est normalisé vers `"other"` lorsqu'il est absent. Les données héritées des versions précédentes sont migrées vers des transitions explicites. Les durées sont exprimées en secondes dans les routines et en millisecondes dans le moteur.

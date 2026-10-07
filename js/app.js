@@ -7,6 +7,7 @@ import {
   duplicateRoutine,
   initializeRoutines,
   saveRoutines,
+  setDefaultTransition,
 } from "./storage.js";
 
 const elements = {
@@ -58,6 +59,7 @@ let engine;
 let unsubscribe = () => {};
 let lastAnnouncement = "";
 let previousSoundSnapshot = null;
+let suppressNextSound = false;
 const sounds = new SoundPlayer();
 
 function formatTime(milliseconds, countUp = false) {
@@ -90,6 +92,10 @@ function renderSoundToggle() {
 function playSounds(snapshot) {
   const previous = previousSoundSnapshot;
   previousSoundSnapshot = snapshot;
+  if (suppressNextSound) {
+    suppressNextSound = false;
+    return;
+  }
   if (!sounds.enabled || !previous) return;
 
   if (
@@ -99,18 +105,27 @@ function playSounds(snapshot) {
   ) {
     const previousSecond = Math.ceil(previous.remainingMs / 1000);
     const currentSecond = Math.ceil(snapshot.remainingMs / 1000);
-    [3, 2, 1].forEach((second) => {
-      if (second < previousSecond && second >= currentSecond) sounds.playCountdown(second);
-    });
+    if (currentSecond >= 1 && currentSecond <= 3 && currentSecond < previousSecond) {
+      sounds.playCountdown(currentSecond);
+    }
   }
 
   if (previous.state === TIMER_STATES.RUNNING && snapshot.state === TIMER_STATES.FINISHED) {
     sounds.playSessionEnd();
   } else if (
     previous.state === TIMER_STATES.RUNNING
-    && (snapshot.state !== TIMER_STATES.RUNNING || previous.currentPosition !== snapshot.currentPosition)
+    && (
+      snapshot.state === TIMER_STATES.WAITING_MANUAL
+      || snapshot.state === TIMER_STATES.RUNNING_TRANSITION
+      || (snapshot.state === TIMER_STATES.RUNNING && previous.currentPosition !== snapshot.currentPosition)
+    )
   ) {
     sounds.playStepEnd();
+  } else if (
+    (previous.state === TIMER_STATES.WAITING_MANUAL || previous.state === TIMER_STATES.RUNNING_TRANSITION)
+    && snapshot.state === TIMER_STATES.RUNNING
+  ) {
+    sounds.playStepStart();
   }
 }
 
@@ -156,7 +171,7 @@ function transitionSelect(value) {
   const select = document.createElement("select");
   select.className = "step-transition";
   select.dataset.field = "transition";
-  [["", "Hérite du défaut"], ["auto", "Automatique"], ["manual", "Manuelle"], ["delay", "Délai"]].forEach(([mode, label]) => {
+  [["", "Choisir…"], ["auto", "Automatique"], ["manual", "Manuelle"], ["delay", "Délai"]].forEach(([mode, label]) => {
     const option = document.createElement("option");
     option.value = mode;
     option.textContent = label;
@@ -282,6 +297,7 @@ function startRoutine(routine) {
   engine = new TimerEngine(routine);
   lastAnnouncement = "";
   previousSoundSnapshot = null;
+  suppressNextSound = false;
   unsubscribe = engine.subscribe(render);
   showScreen("player");
 }
@@ -367,7 +383,7 @@ elements.blocksEditor.addEventListener("click", (event) => {
   const blockElement = button.closest(".block-editor");
   const blockIndex = Number(blockElement.dataset.blockIndex);
   const block = draft.blocks[blockIndex];
-  if (button.dataset.action === "add-step") addStep(block);
+  if (button.dataset.action === "add-step") addStep(block, draft.defaultTransition);
   if (button.dataset.action === "remove-step") block.steps.splice(Number(button.closest(".step-editor").dataset.stepIndex), 1);
   if (button.dataset.action === "remove-block") draft.blocks.splice(blockIndex, 1);
   renderEditor();
@@ -379,12 +395,14 @@ elements.blocksEditor.addEventListener("change", (event) => {
   }
 });
 elements.defaultTransitionInput.addEventListener("change", () => {
-  elements.defaultDelayField.hidden = elements.defaultTransitionInput.value !== "delay";
+  syncDraft();
+  setDefaultTransition(draft, draft.defaultTransition);
+  renderEditor();
 });
 elements.newRoutineButton.addEventListener("click", () => openEditor(createRoutine()));
 elements.addBlockButton.addEventListener("click", () => {
   syncDraft();
-  draft.blocks.push(createBlock());
+  draft.blocks.push(createBlock(draft.defaultTransition));
   renderEditor();
 });
 elements.editorCancelButton.addEventListener("click", () => { renderRoutineList(); showScreen("routines"); });
@@ -397,20 +415,20 @@ elements.routineForm.addEventListener("submit", (event) => {
     elements.editorError.hidden = false;
   }
 });
-elements.backToRoutinesButton.addEventListener("click", () => { engine?.stop(); renderRoutineList(); showScreen("routines"); });
+elements.backToRoutinesButton.addEventListener("click", () => { suppressNextSound = true; engine?.stop(); renderRoutineList(); showScreen("routines"); });
 elements.soundToggleButton.addEventListener("click", () => {
   sounds.setEnabled(!sounds.enabled);
   if (sounds.enabled) sounds.resume();
   renderSoundToggle();
 });
 elements.startButton.addEventListener("click", () => { sounds.resume(); engine.start(); });
-elements.pauseButton.addEventListener("click", () => engine.pause());
+elements.pauseButton.addEventListener("click", () => { suppressNextSound = true; engine.pause(); });
 elements.resumeButton.addEventListener("click", () => { sounds.resume(); engine.resume(); });
 elements.goButton.addEventListener("click", () => { sounds.resume(); engine.go(); });
-elements.previousButton.addEventListener("click", () => { sounds.resume(); engine.previous(); });
-elements.restartButton.addEventListener("click", () => { sounds.resume(); engine.restartStep(); });
-elements.nextButton.addEventListener("click", () => { sounds.resume(); engine.next(); });
-elements.stopButton.addEventListener("click", () => engine.stop());
+elements.previousButton.addEventListener("click", () => { suppressNextSound = true; sounds.resume(); engine.previous(); });
+elements.restartButton.addEventListener("click", () => { suppressNextSound = true; sounds.resume(); engine.restartStep(); });
+elements.nextButton.addEventListener("click", () => { suppressNextSound = true; sounds.resume(); engine.next(); });
+elements.stopButton.addEventListener("click", () => { suppressNextSound = true; engine.stop(); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) engine?.tick(); });
 
 function update() { engine?.tick(); requestAnimationFrame(update); }

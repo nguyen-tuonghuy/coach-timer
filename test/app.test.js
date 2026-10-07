@@ -143,7 +143,9 @@ test("affiche la transition courante avant et pendant une séance", async () => 
   const initialStep = initialBlock.children[1];
   assert.equal(initialStep.children[0].children[1].value, "Étape 1");
   assert.equal(initialStep.children[1].children[1].value, 30);
-  assert.equal(initialStep.children[2].children[1].value, "");
+  const initialTransition = initialStep.children[2].children[1];
+  assert.equal(initialTransition.value, "");
+  assert.equal(initialTransition.children[0].textContent, "Choisir…");
 
   delete globalThis.document;
   delete globalThis.window;
