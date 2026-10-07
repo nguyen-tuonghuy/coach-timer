@@ -29,6 +29,10 @@ Les données restent dans `localStorage`, sans compte ni serveur.
 
 Le lecteur utilise quatre signaux distincts : un bip court identique à 3, 2 et 1 seconde, une tonalité longue à la fin d'un intervalle, un double bip ascendant au départ après GO ou une transition temporisée, puis un motif de trois notes pour la fin de séance. Le bouton « Son activé / désactivé » mémorise ce réglage localement. Certains navigateurs demandent une première interaction avec le lecteur avant d'autoriser le son.
 
+## PWA
+
+Coach Timer peut être installé depuis le navigateur. Après le premier chargement, le service worker conserve l'application et ses ressources statiques pour une utilisation hors ligne. Pendant une séance active, l'application demande un Wake Lock lorsque le navigateur le permet afin de maintenir l'écran allumé; le timer reste utilisable si cette API est indisponible ou refusée.
+
 ## Tester le moteur
 
 ```sh

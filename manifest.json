@@ -1,0 +1,19 @@
+{
+  "name": "Coach Timer",
+  "short_name": "Coach Timer",
+  "description": "Timer d'intervalles pour entraînements et coaching.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d0f0c",
+  "theme_color": "#161914",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

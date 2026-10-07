@@ -1,4 +1,5 @@
 import { TimerEngine, TIMER_STATES } from "./timer.js";
+import { registerServiceWorker } from "./pwa.js";
 import { SoundPlayer } from "./sounds.js";
 import {
   addStep,
@@ -9,6 +10,7 @@ import {
   saveRoutines,
   setDefaultTransition,
 } from "./storage.js";
+import { ScreenWakeLock } from "./wake-lock.js";
 
 const elements = {
   routinesScreen: document.querySelector("#routines-screen"),
@@ -61,6 +63,7 @@ let lastAnnouncement = "";
 let previousSoundSnapshot = null;
 let suppressNextSound = false;
 const sounds = new SoundPlayer();
+const screenWakeLock = new ScreenWakeLock();
 
 function formatTime(milliseconds, countUp = false) {
   const totalSeconds = countUp ? Math.floor(milliseconds / 1000) : Math.ceil(milliseconds / 1000);
@@ -87,6 +90,14 @@ function showScreen(screen) {
 function renderSoundToggle() {
   elements.soundToggleButton.textContent = sounds.enabled ? "Son activé" : "Son désactivé";
   elements.soundToggleButton.setAttribute("aria-pressed", String(sounds.enabled));
+}
+
+function syncWakeLock(state) {
+  if (state === TIMER_STATES.IDLE || state === TIMER_STATES.FINISHED) {
+    screenWakeLock.release();
+  } else {
+    screenWakeLock.acquire();
+  }
 }
 
 function playSounds(snapshot) {
@@ -304,6 +315,7 @@ function startRoutine(routine) {
 
 function render(snapshot) {
   playSounds(snapshot);
+  syncWakeLock(snapshot.state);
   const { state, current, next } = snapshot;
   const isIdle = state === TIMER_STATES.IDLE;
   const isFinished = state === TIMER_STATES.FINISHED;
@@ -429,7 +441,11 @@ elements.previousButton.addEventListener("click", () => { suppressNextSound = tr
 elements.restartButton.addEventListener("click", () => { suppressNextSound = true; sounds.resume(); engine.restartStep(); });
 elements.nextButton.addEventListener("click", () => { suppressNextSound = true; sounds.resume(); engine.next(); });
 elements.stopButton.addEventListener("click", () => { suppressNextSound = true; engine.stop(); });
-document.addEventListener("visibilitychange", () => { if (!document.hidden) engine?.tick(); });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  engine?.tick();
+  if (engine) syncWakeLock(engine.getSnapshot().state);
+});
 
 function update() { engine?.tick(); requestAnimationFrame(update); }
 
@@ -437,4 +453,5 @@ routines = initializeRoutines();
 renderRoutineList();
 showScreen("routines");
 renderSoundToggle();
+registerServiceWorker();
 requestAnimationFrame(update);
