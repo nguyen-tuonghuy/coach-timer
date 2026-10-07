@@ -35,6 +35,27 @@ function normalizeTransition(transition, path) {
   return { mode: transition.mode };
 }
 
+export function resolveStepTransition(routine, step) {
+  if (step.transition) return step.transition;
+  if (routine.defaultTransition) return routine.defaultTransition;
+  throw new TypeError(
+    "Transition manquante : choisissez une transition par défaut pour la routine ou définissez une transition sur l'étape héritée.",
+  );
+}
+
+function normalizeStepTransition(step, defaultTransition, stepPath) {
+  if (step.transition == null) {
+    if (defaultTransition == null) {
+      throw new TypeError(
+        "Transition manquante : choisissez une transition par défaut pour la routine ou définissez une transition sur l'étape héritée.",
+      );
+    }
+    return null;
+  }
+
+  return normalizeTransition(step.transition, `${stepPath}.transition`);
+}
+
 export function normalizeRoutine(routine) {
   if (!routine || typeof routine !== "object") {
     throw new TypeError("La routine doit être un objet.");
@@ -54,10 +75,9 @@ export function normalizeRoutine(routine) {
     return normalizedId;
   };
 
-  const defaultTransition = normalizeTransition(
-    routine.defaultTransition ?? { mode: TRANSITION_MODES.AUTO },
-    "routine.defaultTransition",
-  );
+  const defaultTransition = routine.defaultTransition == null
+    ? null
+    : normalizeTransition(routine.defaultTransition, "routine.defaultTransition");
   const normalized = {
     id: useId(routine.id, "routine.id"),
     name: requireText(routine.name, "routine.name"),
@@ -88,10 +108,7 @@ export function normalizeRoutine(routine) {
             label: requireText(step.label, `${stepPath}.label`),
             duration: requireDuration(step.duration, `${stepPath}.duration`),
             type: step.type == null ? "other" : requireText(step.type, `${stepPath}.type`),
-            transition: normalizeTransition(
-              step.transition ?? defaultTransition,
-              `${stepPath}.transition`,
-            ),
+            transition: normalizeStepTransition(step, defaultTransition, stepPath),
           };
         }),
       };
@@ -114,7 +131,7 @@ export function expandRoutine(routine) {
           repeatIndex,
           repeatCount: block.repeat,
           stepIndex,
-          step,
+          step: { ...step, transition: resolveStepTransition(normalized, step) },
         });
       });
     }

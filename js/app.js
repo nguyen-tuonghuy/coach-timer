@@ -156,7 +156,7 @@ function transitionSelect(value) {
   const select = document.createElement("select");
   select.className = "step-transition";
   select.dataset.field = "transition";
-  [["auto", "Automatique"], ["manual", "Manuelle"], ["delay", "Délai"]].forEach(([mode, label]) => {
+  [["", "Hérite du défaut"], ["auto", "Automatique"], ["manual", "Manuelle"], ["delay", "Délai"]].forEach(([mode, label]) => {
     const option = document.createElement("option");
     option.value = mode;
     option.textContent = label;
@@ -177,9 +177,9 @@ function field(labelText, input) {
 
 function renderEditor() {
   elements.routineNameInput.value = draft.name;
-  elements.defaultTransitionInput.value = draft.defaultTransition.mode;
-  elements.defaultDelayInput.value = draft.defaultTransition.duration ?? 5;
-  elements.defaultDelayField.hidden = draft.defaultTransition.mode !== "delay";
+  elements.defaultTransitionInput.value = draft.defaultTransition?.mode ?? "";
+  elements.defaultDelayInput.value = draft.defaultTransition?.duration ?? 5;
+  elements.defaultDelayField.hidden = draft.defaultTransition?.mode !== "delay";
   elements.blocksEditor.replaceChildren();
   draft.blocks.forEach((block, blockIndex) => {
     const blockElement = document.createElement("section");
@@ -219,12 +219,12 @@ function renderEditor() {
       delay.type = "number";
       delay.min = "0.1";
       delay.step = "0.1";
-      delay.value = step.transition.mode === "delay" ? step.transition.duration : 5;
+      delay.value = step.transition?.mode === "delay" ? step.transition.duration : 5;
       delay.dataset.field = "delay";
       const delayField = field("Durée du délai (s)", delay);
       delayField.classList.add("delay-field");
-      delayField.hidden = step.transition.mode !== "delay";
-      stepElement.append(field("Étape", label), field("Durée (s)", duration), field("Transition", transitionSelect(step.transition.mode)), delayField);
+      delayField.hidden = step.transition?.mode !== "delay";
+      stepElement.append(field("Étape", label), field("Durée (s)", duration), field("Transition", transitionSelect(step.transition?.mode ?? "")), delayField);
       if (block.steps.length > 1) stepElement.append(makeButton("Retirer", "remove-step", "button button-danger"));
       blockElement.append(stepElement);
     });
@@ -236,9 +236,11 @@ function renderEditor() {
 function syncDraft() {
   draft.name = elements.routineNameInput.value;
   const defaultMode = elements.defaultTransitionInput.value;
-  draft.defaultTransition = defaultMode === "delay"
-    ? { mode: defaultMode, duration: Number(elements.defaultDelayInput.value) }
-    : { mode: defaultMode };
+  draft.defaultTransition = !defaultMode
+    ? null
+    : defaultMode === "delay"
+      ? { mode: defaultMode, duration: Number(elements.defaultDelayInput.value) }
+      : { mode: defaultMode };
   elements.blocksEditor.querySelectorAll(".block-editor").forEach((blockElement) => {
     const block = draft.blocks[Number(blockElement.dataset.blockIndex)];
     block.repeat = Number(blockElement.querySelector('[data-field="repeat"]').value);
@@ -247,9 +249,11 @@ function syncDraft() {
       step.label = stepElement.querySelector('[data-field="label"]').value;
       step.duration = Number(stepElement.querySelector('[data-field="duration"]').value);
       const mode = stepElement.querySelector('[data-field="transition"]').value;
-      step.transition = mode === "delay"
-        ? { mode, duration: Number(stepElement.querySelector('[data-field="delay"]').value) }
-        : { mode };
+      step.transition = !mode
+        ? null
+        : mode === "delay"
+          ? { mode, duration: Number(stepElement.querySelector('[data-field="delay"]').value) }
+          : { mode };
     });
   });
 }
@@ -363,7 +367,7 @@ elements.blocksEditor.addEventListener("click", (event) => {
   const blockElement = button.closest(".block-editor");
   const blockIndex = Number(blockElement.dataset.blockIndex);
   const block = draft.blocks[blockIndex];
-  if (button.dataset.action === "add-step") addStep(block, draft.defaultTransition);
+  if (button.dataset.action === "add-step") addStep(block);
   if (button.dataset.action === "remove-step") block.steps.splice(Number(button.closest(".step-editor").dataset.stepIndex), 1);
   if (button.dataset.action === "remove-block") draft.blocks.splice(blockIndex, 1);
   renderEditor();
@@ -380,7 +384,7 @@ elements.defaultTransitionInput.addEventListener("change", () => {
 elements.newRoutineButton.addEventListener("click", () => openEditor(createRoutine()));
 elements.addBlockButton.addEventListener("click", () => {
   syncDraft();
-  draft.blocks.push(createBlock(draft.defaultTransition));
+  draft.blocks.push(createBlock());
   renderEditor();
 });
 elements.editorCancelButton.addEventListener("click", () => { renderRoutineList(); showScreen("routines"); });

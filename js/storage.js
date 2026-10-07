@@ -1,7 +1,7 @@
 import { DEMO_ROUTINES, normalizeRoutine } from "./routines.js";
 
 const STORAGE_KEY = "coach-timer.routines";
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -13,13 +13,27 @@ function getStorage(storage) {
   throw new Error("Le stockage local n'est pas disponible.");
 }
 
+function migrateRoutine(routine) {
+  return {
+    ...routine,
+    defaultTransition: routine.defaultTransition ?? { mode: "auto" },
+    blocks: (routine.blocks ?? []).map((block) => ({
+      ...block,
+      steps: (block.steps ?? []).map((step) =>
+        step.transition === undefined ? { ...step, transition: null } : step,
+      ),
+    })),
+  };
+}
+
 function parseRoutines(serialized) {
   if (!serialized) return null;
 
   try {
     const data = JSON.parse(serialized);
-    if (data?.version !== STORAGE_VERSION || !Array.isArray(data.routines)) return [];
-    return data.routines.map(normalizeRoutine);
+    if (!Array.isArray(data?.routines) || ![1, STORAGE_VERSION].includes(data.version)) return [];
+    const source = data.version === 1 ? data.routines.map(migrateRoutine) : data.routines;
+    return source.map(normalizeRoutine);
   } catch {
     return [];
   }
@@ -55,37 +69,36 @@ export function initializeRoutines(storage) {
   return saveRoutines(DEMO_ROUTINES, target);
 }
 
-export function createStep(defaultTransition, label = "Étape 1") {
+export function createStep(label = "Étape 1") {
   return {
     id: makeId("step"),
     label,
     duration: 30,
     type: "work",
-    transition: { ...defaultTransition },
+    transition: null,
   };
 }
 
-export function createBlock(defaultTransition) {
+export function createBlock() {
   return {
     id: makeId("block"),
     repeat: 1,
-    steps: [createStep(defaultTransition)],
+    steps: [createStep()],
   };
 }
 
-export function addStep(block, defaultTransition) {
-  const step = createStep(defaultTransition, `Étape ${block.steps.length + 1}`);
+export function addStep(block) {
+  const step = createStep(`Étape ${block.steps.length + 1}`);
   block.steps.push(step);
   return step;
 }
 
-export function createRoutine(name = "Nouvelle routine", transition = { mode: "manual" }) {
-  const defaultTransition = { ...transition };
+export function createRoutine(name = "Nouvelle routine") {
   return {
     id: makeId("routine"),
     name,
-    defaultTransition,
-    blocks: [createBlock(defaultTransition)],
+    defaultTransition: null,
+    blocks: [createBlock()],
   };
 }
 

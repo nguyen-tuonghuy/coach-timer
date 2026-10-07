@@ -37,13 +37,13 @@ npm test
 
 ## Modèle de données
 
-Une routine contient des blocs répétables. Chaque étape porte la transition qui sera appliquée à sa fin :
+Une routine contient des blocs répétables. `defaultTransition` reste `null` tant que l'utilisateur n'a pas choisi de transition. Une étape avec `transition: null` hérite de la transition par défaut ; elle ne porte une valeur `auto`, `manual` ou `delay` que si l'utilisateur la surcharge explicitement :
 
 ```js
 {
   id: "routine-id",
   name: "Nom",
-  defaultTransition: { mode: "auto" },
+  defaultTransition: null,
   blocks: [{
     id: "block-id",
     repeat: 3,
@@ -52,10 +52,10 @@ Une routine contient des blocs répétables. Chaque étape porte la transition q
       label: "Travail",
       duration: 20,
       type: "work",
-      transition: { mode: "delay", duration: 5 }
+      transition: null
     }]
   }]
 }
 ```
 
-`defaultTransition` et `type` sont normalisés respectivement vers `{ mode: "auto" }` et `"other"` lorsqu'ils sont absents. Les durées sont exprimées en secondes dans les routines et en millisecondes dans le moteur.
+La transition effective d'une étape est résolue au lancement : la surcharge de l'étape si elle existe, sinon `routine.defaultTransition`. L'enregistrement et le lancement sont refusés si une étape héritée ne peut pas résoudre sa transition. `type` est normalisé vers `"other"` lorsqu'il est absent. Les anciennes données sans `defaultTransition` sont migrées vers `{ mode: "auto" }`. Les durées sont exprimées en secondes dans les routines et en millisecondes dans le moteur.

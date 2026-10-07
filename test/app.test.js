@@ -9,9 +9,19 @@ class FakeElement {
     this.hidden = false;
     this.listeners = new Map();
     this.textContent = "";
-    this.value = "";
     this.children = [];
     this.classList = { add: () => {} };
+    this._value = null;
+  }
+
+  get value() {
+    if (this._value !== null) return this._value;
+    const selected = this.children.find((child) => child.selected);
+    return selected?.value ?? "";
+  }
+
+  set value(value) {
+    this._value = value;
   }
 
   set innerHTML(value) {
@@ -22,7 +32,6 @@ class FakeElement {
     options.forEach((option) => {
       option.parentElement = this;
       this.children.push(option);
-      if (option.value != null && (!this.value || option.selected)) this.value = option.value;
     });
   }
 
@@ -129,12 +138,12 @@ test("affiche la transition courante avant et pendant une séance", async () => 
 
   elements.get("#new-routine-button").click();
   assert.equal(elements.get("#editor-screen").hidden, false);
-  assert.equal(elements.get("#default-transition-input").value, "manual");
+  assert.equal(elements.get("#default-transition-input").value, "");
   const initialBlock = elements.get("#blocks-editor").children[0];
   const initialStep = initialBlock.children[1];
   assert.equal(initialStep.children[0].children[1].value, "Étape 1");
   assert.equal(initialStep.children[1].children[1].value, 30);
-  assert.equal(initialStep.children[2].children[1].value, "manual");
+  assert.equal(initialStep.children[2].children[1].value, "");
 
   delete globalThis.document;
   delete globalThis.window;
