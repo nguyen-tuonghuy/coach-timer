@@ -26,12 +26,14 @@ body {
 }
 
 button,
-select {
+select,
+input {
   font: inherit;
 }
 
 button:focus-visible,
-select:focus-visible {
+select:focus-visible,
+input:focus-visible {
   outline: 3px solid #fff;
   outline-offset: 3px;
 }
@@ -49,6 +51,13 @@ select:focus-visible {
   justify-content: space-between;
   gap: 1.5rem;
   margin-bottom: 1rem;
+}
+
+.header-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.5rem;
 }
 
 .eyebrow,
@@ -72,6 +81,121 @@ h1 {
   display: grid;
   gap: 0.4rem;
   min-width: min(100%, 17rem);
+}
+
+.routine-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.routine-card,
+.editor-card,
+.block-editor {
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.routine-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  padding: 1rem;
+}
+
+.routine-card h2,
+.block-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.routine-card p,
+.empty-state {
+  margin: 0;
+  color: var(--muted);
+}
+
+.routine-actions {
+  display: flex;
+  grid-row: span 2;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.5rem;
+}
+
+.routine-actions .button {
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+}
+
+.editor-card {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface-raised);
+  color: inherit;
+}
+
+input {
+  padding: 0 0.8rem;
+}
+
+.blocks-editor {
+  display: grid;
+  gap: 1rem;
+}
+
+.block-editor {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.block-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9rem auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.step-editor {
+  display: grid;
+  grid-template-columns: minmax(10rem, 2fr) minmax(6rem, 1fr) minmax(8rem, 1fr) minmax(7rem, 1fr) auto;
+  align-items: end;
+  gap: 0.6rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.step-editor .button {
+  min-height: 48px;
+  padding: 0.5rem;
+}
+
+.editor-error {
+  margin: 0;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.editor-save {
+  min-height: 56px;
 }
 
 select {
@@ -171,6 +295,21 @@ select {
   text-align: right;
 }
 
+.next-step-details {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+}
+
+.transition-label {
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .button,
 .go-button {
   min-height: 52px;
@@ -241,6 +380,14 @@ select {
     gap: 0.75rem;
   }
 
+  .header-controls {
+    justify-content: stretch;
+  }
+
+  .header-controls .button {
+    flex: 1 1 8rem;
+  }
+
   .timer-card {
     min-height: calc(100vh - 9.5rem);
     border-radius: 0.7rem;
@@ -252,6 +399,21 @@ select {
 
   .session-controls {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .routine-card,
+  .block-header,
+  .step-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .routine-actions {
+    grid-row: auto;
+    justify-content: stretch;
+  }
+
+  .routine-actions .button {
+    flex: 1 1 8rem;
   }
 }
 

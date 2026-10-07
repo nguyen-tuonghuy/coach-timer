@@ -9,15 +9,59 @@
   </head>
   <body>
     <main class="timer-shell">
+      <section id="routines-screen" class="screen" aria-labelledby="routines-title">
+        <header class="app-header">
+          <div>
+            <p class="eyebrow">Coach Timer</p>
+            <h1 id="routines-title">Mes routines</h1>
+          </div>
+          <button id="new-routine-button" class="button button-primary" type="button">Nouvelle routine</button>
+        </header>
+        <div id="routine-list" class="routine-list"></div>
+      </section>
+
+      <section id="editor-screen" class="screen" aria-labelledby="editor-title" hidden>
+        <header class="app-header">
+          <div>
+            <p class="eyebrow">Éditeur</p>
+            <h1 id="editor-title">Modifier la routine</h1>
+          </div>
+          <button id="editor-cancel-button" class="button" type="button">Annuler</button>
+        </header>
+        <form id="routine-form" class="editor-card">
+          <label class="field">
+            <span>Nom de la routine</span>
+            <input id="routine-name-input" name="name" type="text" required maxlength="80">
+          </label>
+          <label class="field">
+            <span>Transition par défaut</span>
+            <select id="default-transition-input" name="default-transition">
+              <option value="manual" selected>Manuelle</option>
+              <option value="auto">Automatique</option>
+              <option value="delay">Délai chronométré</option>
+            </select>
+          </label>
+          <label id="default-delay-field" class="field" hidden>
+            <span>Durée du délai par défaut (s)</span>
+            <input id="default-delay-input" name="default-delay" type="number" min="0.1" step="0.1" value="5">
+          </label>
+          <div id="blocks-editor" class="blocks-editor"></div>
+          <button id="add-block-button" class="button" type="button">Ajouter un bloc</button>
+          <p id="editor-error" class="editor-error" role="alert" hidden></p>
+          <button class="button button-primary editor-save" type="submit">Enregistrer la routine</button>
+        </form>
+      </section>
+
+      <section id="player-screen" class="screen" aria-labelledby="player-title" hidden>
       <header class="app-header">
         <div>
           <p class="eyebrow">Coach Timer</p>
-          <h1>Lecture de séance</h1>
+          <h1 id="player-title">Lecture de séance</h1>
         </div>
-        <label class="routine-picker">
-          <span>Routine de test</span>
-          <select id="routine-select"></select>
-        </label>
+        <div class="header-controls">
+          <button id="sound-toggle-button" class="button" type="button" aria-pressed="true">Son activé</button>
+          <button id="back-to-routines-button" class="button" type="button">Mes routines</button>
+        </div>
       </header>
 
       <section class="timer-card" aria-labelledby="step-label">
@@ -37,7 +81,10 @@
 
         <div class="next-step">
           <span>Prochaine étape</span>
-          <strong id="next-label">—</strong>
+          <div class="next-step-details">
+            <strong id="next-label">—</strong>
+            <span id="transition-label" class="transition-label"></span>
+          </div>
         </div>
 
         <button id="go-button" class="go-button" type="button" hidden>GO</button>
@@ -54,6 +101,7 @@
           <button id="next-button" class="button" type="button">Suivante</button>
           <button id="stop-button" class="button button-danger" type="button">Arrêter</button>
         </div>
+      </section>
       </section>
     </main>
 

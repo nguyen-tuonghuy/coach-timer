@@ -2,21 +2,50 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 class FakeElement {
-  constructor() {
+  constructor(tagName = "div") {
+    this.tagName = tagName;
     this.dataset = {};
     this.disabled = false;
     this.hidden = false;
     this.listeners = new Map();
     this.textContent = "";
     this.value = "";
+    this.children = [];
+    this.classList = { add: () => {} };
   }
 
   set innerHTML(value) {
     this.textContent = value;
   }
 
-  append(option) {
-    if (!this.value) this.value = option.value;
+  append(...options) {
+    options.forEach((option) => {
+      option.parentElement = this;
+      this.children.push(option);
+      if (option.value != null && (!this.value || option.selected)) this.value = option.value;
+    });
+  }
+
+  appendChild(child) {
+    this.append(child);
+    return child;
+  }
+
+  replaceChildren(...children) {
+    this.children = children;
+  }
+
+  focus() {}
+
+  setAttribute(name, value) {
+    this[name] = value;
+  }
+
+  closest(selector) {
+    if (selector === "button[data-action]" && this.tagName === "button" && this.dataset.action) {
+      return this;
+    }
+    return this.parentElement?.closest(selector) ?? null;
   }
 
   addEventListener(type, listener) {
@@ -28,9 +57,24 @@ class FakeElement {
   }
 }
 
-test("le bouton Démarrer actualise immédiatement l'interface", async () => {
+test("affiche la transition courante avant et pendant une séance", async () => {
   const selectors = [
-    "routine-select",
+    "routines-screen",
+    "editor-screen",
+    "player-screen",
+    "routine-list",
+    "new-routine-button",
+    "editor-cancel-button",
+    "routine-form",
+    "routine-name-input",
+    "default-transition-input",
+    "default-delay-field",
+    "default-delay-input",
+    "blocks-editor",
+    "add-block-button",
+    "editor-error",
+    "sound-toggle-button",
+    "back-to-routines-button",
     "status-badge",
     "progress-label",
     "phase-label",
@@ -39,6 +83,7 @@ test("le bouton Démarrer actualise immédiatement l'interface", async () => {
     "round-label",
     "live-status",
     "next-label",
+    "transition-label",
     "start-button",
     "pause-button",
     "resume-button",
@@ -54,20 +99,44 @@ test("le bouton Démarrer actualise immédiatement l'interface", async () => {
   globalThis.document = {
     hidden: false,
     querySelector: (selector) => elements.get(selector),
-    createElement: () => new FakeElement(),
+    createElement: (tagName) => new FakeElement(tagName),
     addEventListener: () => {},
+  };
+  const values = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+    },
   };
   globalThis.requestAnimationFrame = () => 1;
 
   await import(`../js/app.js?test=${Date.now()}`);
-  elements.get("#start-button").click();
+  assert.equal(elements.get("#routines-screen").hidden, false);
+  assert.equal(elements.get("#routine-list").children.length, 3);
+  const list = elements.get("#routine-list");
+  const launch = (index) => list.children[index].children[2].children[0];
+  const clickListButton = (button) => list.listeners.get("click")({ target: button });
 
-  assert.equal(elements.get("#status-badge").textContent, "En cours");
-  assert.equal(elements.get("#step-label").textContent, "Travail");
-  assert.equal(elements.get("#time-display").textContent, "00:05");
-  assert.equal(elements.get("#start-button").hidden, true);
-  assert.equal(elements.get("#pause-button").hidden, false);
+  clickListButton(launch(0));
+  assert.equal(elements.get("#transition-label").textContent, "Automatique");
+  elements.get("#start-button").click();
+  assert.equal(elements.get("#transition-label").textContent, "Automatique");
+  clickListButton(launch(1));
+  assert.equal(elements.get("#transition-label").textContent, "Manuelle");
+  clickListButton(launch(2));
+  assert.equal(elements.get("#transition-label").textContent, "Délai : 3 s");
+
+  elements.get("#new-routine-button").click();
+  assert.equal(elements.get("#editor-screen").hidden, false);
+  assert.equal(elements.get("#default-transition-input").value, "manual");
+  const initialBlock = elements.get("#blocks-editor").children[0];
+  const initialStep = initialBlock.children[1];
+  assert.equal(initialStep.children[0].children[1].value, "Étape 1");
+  assert.equal(initialStep.children[1].children[1].value, 30);
+  assert.equal(initialStep.children[2].children[1].value, "manual");
 
   delete globalThis.document;
+  delete globalThis.window;
   delete globalThis.requestAnimationFrame;
 });

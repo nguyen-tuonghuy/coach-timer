@@ -1,6 +1,6 @@
 # Coach Timer
 
-Prototype des phases 1 et 2 : moteur de timer indépendant du DOM et écran de lecture mobile-first.
+Prototype des phases 1 à 4 : moteur de timer indépendant du DOM, écran de lecture mobile-first, gestion locale des routines et signaux audio.
 
 ## Lancer l'application
 
@@ -12,7 +12,22 @@ python3 -m http.server 8000
 
 Puis ouvrir `http://localhost:8000`.
 
-Trois routines courtes permettent de vérifier les transitions automatique, manuelle et temporisée.
+Au premier lancement, trois routines courtes permettent de vérifier les transitions automatique, manuelle et temporisée. Elles sont ensuite enregistrées dans le navigateur avec les routines créées dans l'éditeur.
+
+## Gérer les routines
+
+Depuis « Mes routines », il est possible de :
+
+- créer une routine composée de blocs répétables et d'étapes ;
+- modifier son nom, sa transition par défaut, ses blocs et ses étapes ;
+- définir des transitions automatique, manuelle ou avec délai ;
+- lancer, dupliquer ou supprimer une routine.
+
+Les données restent dans `localStorage`, sans compte ni serveur.
+
+## Sons
+
+Le lecteur émet des signaux à 3, 2 et 1 seconde, puis des sons distincts à la fin d'une étape et de la séance. Le bouton « Son activé / désactivé » mémorise ce réglage localement. Certains navigateurs demandent une première interaction avec le lecteur avant d'autoriser le son.
 
 ## Tester le moteur
 
