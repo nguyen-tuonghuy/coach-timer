@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#161914">
+    <title>Coach Timer</title>
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <main class="timer-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Coach Timer</p>
+          <h1>Lecture de séance</h1>
+        </div>
+        <label class="routine-picker">
+          <span>Routine de test</span>
+          <select id="routine-select"></select>
+        </label>
+      </header>
+
+      <section class="timer-card" aria-labelledby="step-label">
+        <div class="status-line">
+          <span id="status-badge" class="status-badge">Prêt</span>
+          <span id="progress-label">Étape 0 / 0</span>
+        </div>
+
+        <div class="timer-stage">
+          <p id="phase-label" class="phase-label">Séance prête</p>
+          <h2 id="step-label">Choisissez une routine</h2>
+          <output id="time-display" class="time-display">00:00</output>
+          <p id="round-label" class="round-label">&nbsp;</p>
+        </div>
+
+        <p id="live-status" class="visually-hidden" aria-live="polite" aria-atomic="true"></p>
+
+        <div class="next-step">
+          <span>Prochaine étape</span>
+          <strong id="next-label">—</strong>
+        </div>
+
+        <button id="go-button" class="go-button" type="button" hidden>GO</button>
+
+        <div class="primary-controls">
+          <button id="start-button" class="button button-primary" type="button">Démarrer</button>
+          <button id="pause-button" class="button button-primary" type="button" hidden>Pause</button>
+          <button id="resume-button" class="button button-primary" type="button" hidden>Reprendre</button>
+        </div>
+
+        <div id="session-controls" class="session-controls" hidden>
+          <button id="previous-button" class="button" type="button">Précédente</button>
+          <button id="restart-button" class="button" type="button">Recommencer</button>
+          <button id="next-button" class="button" type="button">Suivante</button>
+          <button id="stop-button" class="button button-danger" type="button">Arrêter</button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
