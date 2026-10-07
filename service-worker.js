@@ -1,9 +1,17 @@
-const CACHE_NAME = "coach-timer-v1";
+const CACHE_NAME = "coach-timer-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./icon.svg",
+  "./assets/icons/icon-192.png",
+  "./assets/icons/icon-512.png",
+  "./assets/icons/icon-maskable-192.png",
+  "./assets/icons/icon-maskable-512.png",
+  "./assets/icons/apple-touch-icon.png",
+  "./assets/icons/favicon-16.png",
+  "./assets/icons/favicon-32.png",
+  "./assets/icons/favicon-48.png",
+  "./assets/icons/favicon.ico",
   "./css/style.css",
   "./js/app.js",
   "./js/pwa.js",
