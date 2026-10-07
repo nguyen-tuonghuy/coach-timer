@@ -1,4 +1,4 @@
-const CACHE_NAME = "coach-timer-v3";
+const CACHE_NAME = "coach-timer-v4";
 const APP_SHELL = [
   "./",
   "./index.html",

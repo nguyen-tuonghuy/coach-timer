@@ -2,7 +2,7 @@ const AUDIO_SETTINGS_KEY = "coach-timer.audio-settings";
 const LEGACY_SOUND_ENABLED_KEY = "coach-timer.sound-enabled";
 const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
-  volume: 70,
+  volume: 90,
   countdownEnabled: true,
   stepEndEnabled: true,
 });
@@ -141,7 +141,7 @@ export class SoundPlayer {
     const gain = this.context.createGain();
     const startAt = this.context.currentTime + offset;
     oscillator.frequency.setValueAtTime(frequency, startAt);
-    gain.gain.setValueAtTime(0.18, startAt);
+    gain.gain.setValueAtTime(0.28, startAt);
     gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
     oscillator.connect(gain);
     gain.connect(this.masterGain);

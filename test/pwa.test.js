@@ -48,6 +48,7 @@ test("génère les variantes PNG aux dimensions attendues depuis l'icône source
 test("référence les icônes avec des chemins relatifs compatibles GitHub Pages", async () => {
   const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
   const serviceWorker = await readFile(new URL("../service-worker.js", import.meta.url), "utf8");
+  assert.match(serviceWorker, /const CACHE_NAME = "coach-timer-v4"/);
   assert.match(html, /href="\.\/assets\/icons\/favicon\.ico"/);
   assert.match(html, /href="\.\/assets\/icons\/apple-touch-icon\.png"/);
   for (const [path] of iconAssets) {
@@ -69,6 +70,13 @@ test("déclare les métadonnées iOS et les safe areas pour le mode autonome", a
   });
   assert.match(css, /100dvh/);
   assert.doesNotMatch(html, /<a\b|window\.location/);
+});
+
+test("ancre le panneau audio mobile à toute la rangée de contrôles", async () => {
+  const css = await readFile(new URL("../css/style.css", import.meta.url), "utf8");
+  assert.match(css, /\.header-controls\s*\{\s*position: relative;/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.audio-settings\s*\{\s*position: static;/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*?\.audio-settings-panel\s*\{[\s\S]*?right: 0;[\s\S]*?left: 0;[\s\S]*?width: auto;/);
 });
 
 test("enregistre le service worker lorsque l'API est disponible", async () => {

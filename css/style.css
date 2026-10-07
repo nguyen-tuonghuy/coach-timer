@@ -60,6 +60,7 @@ input:focus-visible {
 }
 
 .header-controls {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: end;
@@ -497,11 +498,19 @@ select {
   }
 
   .audio-settings {
+    position: static;
     flex: 1 1 auto;
   }
 
   .audio-settings-button {
     width: 100%;
+  }
+
+  .audio-settings-panel {
+    top: calc(100% + 0.5rem);
+    right: 0;
+    left: 0;
+    width: auto;
   }
 
   .timer-card {

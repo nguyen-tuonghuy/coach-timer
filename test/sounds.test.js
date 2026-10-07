@@ -96,6 +96,7 @@ test("restaure et sauvegarde tous les réglages audio", () => {
   const storage = memoryStorage();
   const player = new SoundPlayer({ storage, AudioContextClass: FakeAudioContext });
   assert.deepEqual(player.settings, DEFAULT_SETTINGS);
+  assert.equal(player.settings.volume, 90);
 
   player.setEnabled(false);
   player.setVolume(42);
@@ -116,12 +117,15 @@ test("migre l'ancien réglage Son activé", () => {
   const storage = memoryStorage(new Map([[LEGACY_SOUND_ENABLED_KEY, "false"]]));
   const player = new SoundPlayer({ storage, AudioContextClass: FakeAudioContext });
   assert.equal(player.enabled, false);
+  assert.equal(player.settings.volume, 90);
   assert.equal(JSON.parse(storage.values.get(AUDIO_SETTINGS_KEY)).enabled, false);
 });
 
 test("applique le volume au gain maître et borne ses valeurs", () => {
   const player = new SoundPlayer({ AudioContextClass: FakeAudioContext });
   player.playCountdown(3);
+  assert.equal(player.context.gains[0].gain.values.at(-1).value, 0.9);
+  assert.equal(player.context.gains[1].gain.values[0].value, 0.28);
   player.setVolume(125);
   assert.equal(player.settings.volume, 100);
   assert.equal(player.context.gains[0].gain.values.at(-1).value, 1);
