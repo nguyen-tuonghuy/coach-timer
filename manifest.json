@@ -3,6 +3,7 @@
   "short_name": "Coach Timer",
   "description": "Timer d'intervalles pour entraînements et coaching.",
   "lang": "fr",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { registerServiceWorker } from "../js/pwa.js";
-import { ScreenWakeLock } from "../js/wake-lock.js";
+import { ACTIVE_STATES, ScreenWakeLock } from "../js/wake-lock.js";
 
 const iconAssets = [
   ["../assets/icons/icon-192.png", 192],
@@ -25,7 +25,9 @@ test("déclare un manifest installable avec les icônes PWA", async () => {
   assert.equal(manifest.name, "Coach Timer");
   assert.equal(manifest.short_name, "Coach Timer");
   assert.equal(manifest.display, "standalone");
+  assert.equal(manifest.id, "./");
   assert.equal(manifest.start_url, "./");
+  assert.equal(manifest.scope, "./");
   assert.equal(manifest.theme_color, "#161914");
   assert.equal(manifest.background_color, "#0d0f0c");
   assert.deepEqual(manifest.icons.map(({ src, purpose }) => [src, purpose]), [
@@ -52,6 +54,21 @@ test("référence les icônes avec des chemins relatifs compatibles GitHub Pages
     const relativePath = `./${path.slice(3)}`;
     assert.match(serviceWorker, new RegExp(`"${relativePath.replaceAll(".", "\\.")}"`));
   }
+});
+
+test("déclare les métadonnées iOS et les safe areas pour le mode autonome", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  const css = await readFile(new URL("../css/style.css", import.meta.url), "utf8");
+  assert.match(html, /viewport-fit=cover/);
+  assert.match(html, /name="apple-mobile-web-app-capable" content="yes"/);
+  assert.match(html, /name="apple-mobile-web-app-status-bar-style" content="black-translucent"/);
+  assert.match(html, /name="apple-mobile-web-app-title" content="Coach Timer"/);
+  assert.match(html, /name="theme-color" content="#161914"/);
+  ["top", "right", "bottom", "left"].forEach((side) => {
+    assert.match(css, new RegExp(`env\\(safe-area-inset-${side}\\)`));
+  });
+  assert.match(css, /100dvh/);
+  assert.doesNotMatch(html, /<a\b|window\.location/);
 });
 
 test("enregistre le service worker lorsque l'API est disponible", async () => {
@@ -86,6 +103,51 @@ test("acquiert, relâche et récupère le Wake Lock", async () => {
   assert.equal(requests, 2);
   await lock.release();
   assert.equal(released, 1);
+});
+
+test("conserve le Wake Lock uniquement pendant les états actifs et visibles", async () => {
+  let released = 0;
+  let requests = 0;
+  const lock = new ScreenWakeLock({
+    navigatorObject: {
+      wakeLock: {
+        request: async () => {
+          requests += 1;
+          return { addEventListener: () => {}, release: async () => { released += 1; } };
+        },
+      },
+    },
+  });
+
+  assert.deepEqual([...ACTIVE_STATES], ["RUNNING", "RUNNING_TRANSITION", "WAITING_MANUAL"]);
+  for (const state of ACTIVE_STATES) {
+    await lock.sync(state, true);
+    await lock.sync("PAUSED", true);
+  }
+  assert.equal(requests, 3);
+  assert.equal(released, 3);
+});
+
+test("relâche au passage en arrière-plan et redemande au retour actif", async () => {
+  let released = 0;
+  let requests = 0;
+  const lock = new ScreenWakeLock({
+    navigatorObject: {
+      wakeLock: {
+        request: async () => {
+          requests += 1;
+          return { addEventListener: () => {}, release: async () => { released += 1; } };
+        },
+      },
+    },
+  });
+
+  await lock.sync("RUNNING", true);
+  await lock.sync("RUNNING", false);
+  await lock.sync("RUNNING", true);
+  await lock.sync("FINISHED", true);
+  assert.equal(requests, 2);
+  assert.equal(released, 2);
 });
 
 test("ne duplique pas les demandes Wake Lock en attente", async () => {

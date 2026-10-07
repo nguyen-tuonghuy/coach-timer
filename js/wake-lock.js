@@ -1,3 +1,5 @@
+const ACTIVE_STATES = new Set(["RUNNING", "RUNNING_TRANSITION", "WAITING_MANUAL"]);
+
 export class ScreenWakeLock {
   constructor({ navigatorObject = globalThis.navigator } = {}) {
     this.navigatorObject = navigatorObject;
@@ -31,6 +33,7 @@ export class ScreenWakeLock {
   }
 
   async release() {
+    if (!this.sentinel && !this.requesting) return;
     this.requestVersion += 1;
     const sentinel = this.sentinel;
     this.sentinel = null;
@@ -42,4 +45,11 @@ export class ScreenWakeLock {
       // A released sentinel may reject a second release attempt.
     }
   }
+
+  sync(state, visible) {
+    if (visible && ACTIVE_STATES.has(state)) return this.acquire();
+    return this.release();
+  }
 }
+
+export { ACTIVE_STATES };

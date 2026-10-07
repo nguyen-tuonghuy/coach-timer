@@ -93,11 +93,7 @@ function renderSoundToggle() {
 }
 
 function syncWakeLock(state) {
-  if (state === TIMER_STATES.IDLE || state === TIMER_STATES.FINISHED) {
-    screenWakeLock.release();
-  } else {
-    screenWakeLock.acquire();
-  }
+  screenWakeLock.sync(state, !document.hidden);
 }
 
 function playSounds(snapshot) {
@@ -427,7 +423,7 @@ elements.routineForm.addEventListener("submit", (event) => {
     elements.editorError.hidden = false;
   }
 });
-elements.backToRoutinesButton.addEventListener("click", () => { suppressNextSound = true; engine?.stop(); renderRoutineList(); showScreen("routines"); });
+elements.backToRoutinesButton.addEventListener("click", () => { suppressNextSound = true; screenWakeLock.release(); engine?.stop(); renderRoutineList(); showScreen("routines"); });
 elements.soundToggleButton.addEventListener("click", () => {
   sounds.setEnabled(!sounds.enabled);
   if (sounds.enabled) sounds.resume();
@@ -442,7 +438,10 @@ elements.restartButton.addEventListener("click", () => { suppressNextSound = tru
 elements.nextButton.addEventListener("click", () => { suppressNextSound = true; sounds.resume(); engine.next(); });
 elements.stopButton.addEventListener("click", () => { suppressNextSound = true; engine.stop(); });
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) return;
+  if (document.hidden) {
+    screenWakeLock.sync(engine?.getSnapshot().state, false);
+    return;
+  }
   engine?.tick();
   if (engine) syncWakeLock(engine.getSnapshot().state);
 });

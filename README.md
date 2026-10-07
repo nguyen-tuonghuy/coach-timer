@@ -31,7 +31,7 @@ Le lecteur utilise quatre signaux distincts : un bip court identique à 3, 2 et 
 
 ## PWA
 
-Coach Timer peut être installé depuis le navigateur. Après le premier chargement, le service worker conserve l'application et ses ressources statiques pour une utilisation hors ligne. Pendant une séance active, l'application demande un Wake Lock lorsque le navigateur le permet afin de maintenir l'écran allumé; le timer reste utilisable si cette API est indisponible ou refusée.
+Coach Timer peut être installé depuis le navigateur et se lance en mode autonome sur Android et iOS. Après le premier chargement, le service worker conserve l'application et ses ressources statiques pour une utilisation hors ligne. L’interface respecte les zones sûres des téléphones à encoche. Pendant une étape, une transition chronométrée ou une attente manuelle, l'application demande un Wake Lock lorsque le navigateur le permet; il est relâché en pause, à la fin et à la sortie du lecteur. Le timer reste utilisable si cette API est indisponible ou refusée.
 
 ## Tester le moteur
 
