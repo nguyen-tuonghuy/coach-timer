@@ -82,7 +82,14 @@ test("affiche la transition courante avant et pendant une séance", async () => 
     "blocks-editor",
     "add-block-button",
     "editor-error",
-    "sound-toggle-button",
+    "audio-settings",
+    "audio-settings-button",
+    "audio-settings-panel",
+    "audio-enabled-input",
+    "audio-volume-input",
+    "audio-volume-value",
+    "audio-countdown-input",
+    "audio-step-end-input",
     "back-to-routines-button",
     "status-badge",
     "progress-label",
@@ -123,6 +130,17 @@ test("affiche la transition courante avant et pendant une séance", async () => 
   await import(`../js/app.js?test=${Date.now()}`);
   assert.equal(elements.get("#routines-screen").hidden, false);
   assert.equal(elements.get("#routine-list").children.length, 3);
+  assert.equal(elements.get("#audio-settings-panel").hidden, true);
+  assert.equal(elements.get("#audio-settings-button")["aria-expanded"], "false");
+  elements.get("#audio-settings-button").click();
+  assert.equal(elements.get("#audio-settings-panel").hidden, false);
+  assert.equal(elements.get("#audio-settings-button")["aria-expanded"], "true");
+  elements.get("#audio-volume-input").value = "35";
+  elements.get("#audio-volume-input").listeners.get("input")();
+  assert.equal(elements.get("#audio-volume-value").textContent, "35 %");
+  elements.get("#audio-enabled-input").checked = false;
+  elements.get("#audio-enabled-input").listeners.get("change")();
+  assert.equal(JSON.parse(values.get("coach-timer.audio-settings")).enabled, false);
   const list = elements.get("#routine-list");
   const launch = (index) => list.children[index].children[2].children[0];
   const clickListButton = (button) => list.listeners.get("click")({ target: button });

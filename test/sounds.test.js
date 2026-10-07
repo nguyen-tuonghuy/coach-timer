@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { SoundPlayer } from "../js/sounds.js";
+import {
+  AUDIO_SETTINGS_KEY,
+  DEFAULT_SETTINGS,
+  LEGACY_SOUND_ENABLED_KEY,
+  SoundPlayer,
+} from "../js/sounds.js";
 
 class FakeAudioContext {
   constructor() {
@@ -9,6 +14,7 @@ class FakeAudioContext {
     this.destination = {};
     this.state = "running";
     this.oscillators = [];
+    this.gains = [];
   }
 
   createOscillator() {
@@ -23,11 +29,25 @@ class FakeAudioContext {
   }
 
   createGain() {
-    return {
-      gain: { setValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} },
-      connect: () => {},
+    const gain = {
+      gain: {
+        values: [],
+        setValueAtTime: (value, time) => { gain.gain.values.push({ value, time }); },
+        exponentialRampToValueAtTime: () => {},
+      },
+      connect: (target) => { gain.connectedTo = target; },
     };
+    this.gains.push(gain);
+    return gain;
   }
+}
+
+function memoryStorage(values = new Map()) {
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    values,
+  };
 }
 
 function pattern(player) {
@@ -72,12 +92,61 @@ test("distingue le départ d'étape et la fin de séance", () => {
   ]);
 });
 
-test("désactive les sons et mémorise le réglage", () => {
-  const values = new Map();
-  const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+test("restaure et sauvegarde tous les réglages audio", () => {
+  const storage = memoryStorage();
+  const player = new SoundPlayer({ storage, AudioContextClass: FakeAudioContext });
+  assert.deepEqual(player.settings, DEFAULT_SETTINGS);
+
+  player.setEnabled(false);
+  player.setVolume(42);
+  player.setCountdownEnabled(false);
+  player.setStepEndEnabled(false);
+  assert.deepEqual(JSON.parse(storage.values.get(AUDIO_SETTINGS_KEY)), {
+    enabled: false,
+    volume: 42,
+    countdownEnabled: false,
+    stepEndEnabled: false,
+  });
+
+  const restored = new SoundPlayer({ storage, AudioContextClass: FakeAudioContext });
+  assert.deepEqual(restored.settings, player.settings);
+});
+
+test("migre l'ancien réglage Son activé", () => {
+  const storage = memoryStorage(new Map([[LEGACY_SOUND_ENABLED_KEY, "false"]]));
+  const player = new SoundPlayer({ storage, AudioContextClass: FakeAudioContext });
+  assert.equal(player.enabled, false);
+  assert.equal(JSON.parse(storage.values.get(AUDIO_SETTINGS_KEY)).enabled, false);
+});
+
+test("applique le volume au gain maître et borne ses valeurs", () => {
+  const player = new SoundPlayer({ AudioContextClass: FakeAudioContext });
+  player.playCountdown(3);
+  player.setVolume(125);
+  assert.equal(player.settings.volume, 100);
+  assert.equal(player.context.gains[0].gain.values.at(-1).value, 1);
+  player.setVolume(-2);
+  assert.equal(player.settings.volume, 0);
+  assert.equal(player.context.gains[0].gain.values.at(-1).value, 0);
+});
+
+test("désactive séparément compte à rebours et fin d'étape", () => {
+  const player = new SoundPlayer({ AudioContextClass: FakeAudioContext });
+  player.setCountdownEnabled(false);
+  player.setStepEndEnabled(false);
+  player.playCountdown(3);
+  player.playStepEnd();
+  assert.equal(player.context, null);
+
+  player.playSessionEnd();
+  assert.equal(player.context.oscillators.length, 3);
+});
+
+test("désactive tous les sons avec l'interrupteur principal", () => {
+  const storage = memoryStorage();
   const player = new SoundPlayer({ storage, AudioContextClass: FakeAudioContext });
   player.setEnabled(false);
-  player.playCountdown(3);
+  player.playSessionEnd();
   assert.equal(player.context, null);
-  assert.equal(values.get("coach-timer.sound-enabled"), "false");
+  assert.equal(JSON.parse(storage.values.get(AUDIO_SETTINGS_KEY)).enabled, false);
 });

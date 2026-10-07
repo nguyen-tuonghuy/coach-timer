@@ -1,4 +1,11 @@
-const SOUND_ENABLED_KEY = "coach-timer.sound-enabled";
+const AUDIO_SETTINGS_KEY = "coach-timer.audio-settings";
+const LEGACY_SOUND_ENABLED_KEY = "coach-timer.sound-enabled";
+const DEFAULT_SETTINGS = Object.freeze({
+  enabled: true,
+  volume: 70,
+  countdownEnabled: true,
+  stepEndEnabled: true,
+});
 
 function getStorage(storage) {
   if (storage) return storage;
@@ -12,11 +19,29 @@ function getStorage(storage) {
   return null;
 }
 
-function readEnabled(storage) {
+function clampVolume(value) {
+  const volume = Number(value);
+  if (!Number.isFinite(volume)) return DEFAULT_SETTINGS.volume;
+  return Math.round(Math.min(100, Math.max(0, volume)));
+}
+
+function readSettings(storage) {
   try {
-    return storage?.getItem(SOUND_ENABLED_KEY) !== "false";
+    const stored = storage?.getItem(AUDIO_SETTINGS_KEY);
+    if (stored) {
+      const settings = JSON.parse(stored);
+      return {
+        enabled: typeof settings.enabled === "boolean" ? settings.enabled : DEFAULT_SETTINGS.enabled,
+        volume: clampVolume(settings.volume),
+        countdownEnabled: typeof settings.countdownEnabled === "boolean" ? settings.countdownEnabled : DEFAULT_SETTINGS.countdownEnabled,
+        stepEndEnabled: typeof settings.stepEndEnabled === "boolean" ? settings.stepEndEnabled : DEFAULT_SETTINGS.stepEndEnabled,
+      };
+    }
+
+    const legacyEnabled = storage?.getItem(LEGACY_SOUND_ENABLED_KEY);
+    return { ...DEFAULT_SETTINGS, enabled: legacyEnabled !== "false" };
   } catch {
-    return true;
+    return { ...DEFAULT_SETTINGS };
   }
 }
 
@@ -24,22 +49,36 @@ export class SoundPlayer {
   constructor({ storage, AudioContextClass = globalThis.AudioContext ?? globalThis.webkitAudioContext } = {}) {
     this.storage = getStorage(storage);
     this.AudioContextClass = AudioContextClass;
-    this.enabled = readEnabled(this.storage);
+    this.settings = readSettings(this.storage);
     this.context = null;
+    this.masterGain = null;
+    this._saveSettings();
+  }
+
+  get enabled() {
+    return this.settings.enabled;
   }
 
   setEnabled(enabled) {
-    this.enabled = Boolean(enabled);
-    try {
-      this.storage?.setItem(SOUND_ENABLED_KEY, String(this.enabled));
-    } catch {
-      // The control still works when browser storage is unavailable.
-    }
+    this._updateSettings({ enabled: Boolean(enabled) });
+  }
+
+  setVolume(volume) {
+    this._updateSettings({ volume: clampVolume(volume) });
+    this._applyMasterVolume();
+  }
+
+  setCountdownEnabled(enabled) {
+    this._updateSettings({ countdownEnabled: Boolean(enabled) });
+  }
+
+  setStepEndEnabled(enabled) {
+    this._updateSettings({ stepEndEnabled: Boolean(enabled) });
   }
 
   async resume() {
     if (!this.enabled || !this.AudioContextClass) return;
-    this.context ??= new this.AudioContextClass();
+    this._ensureAudioGraph();
     if (this.context.state === "suspended") {
       try {
         await this.context.resume();
@@ -50,11 +89,11 @@ export class SoundPlayer {
   }
 
   playCountdown(second) {
-    if ([3, 2, 1].includes(second)) this._tone(880, 0.08);
+    if (this.settings.countdownEnabled && [3, 2, 1].includes(second)) this._tone(880, 0.08);
   }
 
   playStepEnd() {
-    this._tone(440, 0.6);
+    if (this.settings.stepEndEnabled) this._tone(440, 0.6);
   }
 
   playStepStart() {
@@ -68,20 +107,47 @@ export class SoundPlayer {
     this._tone(1047, 0.45, 0.4);
   }
 
+  _updateSettings(settings) {
+    this.settings = { ...this.settings, ...settings };
+    this._saveSettings();
+  }
+
+  _saveSettings() {
+    try {
+      this.storage?.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(this.settings));
+    } catch {
+      // The controls still work when browser storage is unavailable.
+    }
+  }
+
+  _ensureAudioGraph() {
+    this.context ??= new this.AudioContextClass();
+    if (!this.masterGain) {
+      this.masterGain = this.context.createGain();
+      this.masterGain.connect(this.context.destination);
+    }
+    this._applyMasterVolume();
+  }
+
+  _applyMasterVolume() {
+    if (!this.masterGain || !this.context) return;
+    this.masterGain.gain.setValueAtTime(this.settings.volume / 100, this.context.currentTime);
+  }
+
   _tone(frequency, duration, offset = 0) {
     if (!this.enabled || !this.AudioContextClass) return;
-    this.context ??= new this.AudioContextClass();
+    this._ensureAudioGraph();
     const oscillator = this.context.createOscillator();
     const gain = this.context.createGain();
     const startAt = this.context.currentTime + offset;
     oscillator.frequency.setValueAtTime(frequency, startAt);
-    gain.gain.setValueAtTime(0.12, startAt);
+    gain.gain.setValueAtTime(0.18, startAt);
     gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
     oscillator.connect(gain);
-    gain.connect(this.context.destination);
+    gain.connect(this.masterGain);
     oscillator.start(startAt);
     oscillator.stop(startAt + duration);
   }
 }
 
-export { SOUND_ENABLED_KEY };
+export { AUDIO_SETTINGS_KEY, DEFAULT_SETTINGS, LEGACY_SOUND_ENABLED_KEY };

@@ -67,7 +67,29 @@
           <h1 id="player-title">Lecture de séance</h1>
         </div>
         <div class="header-controls">
-          <button id="sound-toggle-button" class="button" type="button" aria-pressed="true">Son activé</button>
+          <div id="audio-settings" class="audio-settings">
+            <button id="audio-settings-button" class="button audio-settings-button" type="button" aria-label="Ouvrir les réglages audio" aria-expanded="false" aria-controls="audio-settings-panel">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Zm12.5 3a4.5 4.5 0 0 0-2.1-3.8v7.6a4.5 4.5 0 0 0 2.1-3.8Zm0-8.4v2.5a7.5 7.5 0 0 1 0 11.8v2.5a10 10 0 0 0 0-16.8Z"/></svg>
+            </button>
+            <section id="audio-settings-panel" class="audio-settings-panel" aria-label="Réglages audio" hidden>
+              <label class="audio-setting audio-switch-row">
+                <span>Son activé</span>
+                <input id="audio-enabled-input" class="audio-switch" type="checkbox" role="switch">
+              </label>
+              <label class="audio-setting audio-volume-row" for="audio-volume-input">
+                <span>Volume <output id="audio-volume-value" for="audio-volume-input">70 %</output></span>
+                <input id="audio-volume-input" type="range" min="0" max="100" step="1">
+              </label>
+              <label class="audio-setting audio-switch-row">
+                <span>Compte à rebours 3-2-1</span>
+                <input id="audio-countdown-input" class="audio-switch" type="checkbox" role="switch">
+              </label>
+              <label class="audio-setting audio-switch-row">
+                <span>Son de fin d'étape</span>
+                <input id="audio-step-end-input" class="audio-switch" type="checkbox" role="switch">
+              </label>
+            </section>
+          </div>
           <button id="back-to-routines-button" class="button" type="button">Mes routines</button>
         </div>
       </header>

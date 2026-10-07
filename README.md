@@ -27,7 +27,7 @@ Les données restent dans `localStorage`, sans compte ni serveur.
 
 ## Sons
 
-Le lecteur utilise quatre signaux distincts : un bip court identique à 3, 2 et 1 seconde, une tonalité longue à la fin d'un intervalle, un double bip ascendant au départ après GO ou une transition temporisée, puis un motif de trois notes pour la fin de séance. Le bouton « Son activé / désactivé » mémorise ce réglage localement. Certains navigateurs demandent une première interaction avec le lecteur avant d'autoriser le son.
+Le lecteur utilise quatre signaux distincts : un bip court identique à 3, 2 et 1 seconde, une tonalité longue à la fin d'un intervalle, un double bip ascendant au départ après GO ou une transition temporisée, puis un motif de trois notes pour la fin de séance. Le bouton haut-parleur ouvre un panneau compact pour activer le son, régler le volume, désactiver le compte à rebours ou le signal de fin d'étape. Ces réglages sont mémorisés localement; le signal de fin de séance reste actif tant que le son principal l’est. Certains navigateurs demandent une première interaction avec le lecteur avant d'autoriser le son.
 
 ## PWA
 

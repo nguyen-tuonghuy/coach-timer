@@ -27,7 +27,14 @@ const elements = {
   blocksEditor: document.querySelector("#blocks-editor"),
   addBlockButton: document.querySelector("#add-block-button"),
   editorError: document.querySelector("#editor-error"),
-  soundToggleButton: document.querySelector("#sound-toggle-button"),
+  audioSettings: document.querySelector("#audio-settings"),
+  audioSettingsButton: document.querySelector("#audio-settings-button"),
+  audioSettingsPanel: document.querySelector("#audio-settings-panel"),
+  audioEnabledInput: document.querySelector("#audio-enabled-input"),
+  audioVolumeInput: document.querySelector("#audio-volume-input"),
+  audioVolumeValue: document.querySelector("#audio-volume-value"),
+  audioCountdownInput: document.querySelector("#audio-countdown-input"),
+  audioStepEndInput: document.querySelector("#audio-step-end-input"),
   backToRoutinesButton: document.querySelector("#back-to-routines-button"),
   statusBadge: document.querySelector("#status-badge"),
   progressLabel: document.querySelector("#progress-label"),
@@ -62,6 +69,7 @@ let unsubscribe = () => {};
 let lastAnnouncement = "";
 let previousSoundSnapshot = null;
 let suppressNextSound = false;
+let audioPanelOpen = false;
 const sounds = new SoundPlayer();
 const screenWakeLock = new ScreenWakeLock();
 
@@ -87,9 +95,24 @@ function showScreen(screen) {
   elements.playerScreen.hidden = screen !== "player";
 }
 
-function renderSoundToggle() {
-  elements.soundToggleButton.textContent = sounds.enabled ? "Son activé" : "Son désactivé";
-  elements.soundToggleButton.setAttribute("aria-pressed", String(sounds.enabled));
+function renderAudioSettings() {
+  const { enabled, volume, countdownEnabled, stepEndEnabled } = sounds.settings;
+  elements.audioEnabledInput.checked = enabled;
+  elements.audioVolumeInput.value = volume;
+  elements.audioVolumeValue.textContent = `${volume} %`;
+  elements.audioCountdownInput.checked = countdownEnabled;
+  elements.audioStepEndInput.checked = stepEndEnabled;
+}
+
+function setAudioPanel(open) {
+  audioPanelOpen = open;
+  elements.audioSettingsPanel.hidden = !open;
+  elements.audioSettingsButton.setAttribute("aria-expanded", String(open));
+  elements.audioSettingsButton.setAttribute(
+    "aria-label",
+    open ? "Fermer les réglages audio" : "Ouvrir les réglages audio",
+  );
+  if (open) renderAudioSettings();
 }
 
 function syncWakeLock(state) {
@@ -423,11 +446,26 @@ elements.routineForm.addEventListener("submit", (event) => {
     elements.editorError.hidden = false;
   }
 });
-elements.backToRoutinesButton.addEventListener("click", () => { suppressNextSound = true; screenWakeLock.release(); engine?.stop(); renderRoutineList(); showScreen("routines"); });
-elements.soundToggleButton.addEventListener("click", () => {
-  sounds.setEnabled(!sounds.enabled);
+elements.backToRoutinesButton.addEventListener("click", () => { suppressNextSound = true; setAudioPanel(false); screenWakeLock.release(); engine?.stop(); renderRoutineList(); showScreen("routines"); });
+elements.audioSettingsButton.addEventListener("click", () => {
+  setAudioPanel(!audioPanelOpen);
+});
+elements.audioEnabledInput.addEventListener("change", () => {
+  sounds.setEnabled(elements.audioEnabledInput.checked);
   if (sounds.enabled) sounds.resume();
-  renderSoundToggle();
+  renderAudioSettings();
+});
+elements.audioVolumeInput.addEventListener("input", () => {
+  sounds.setVolume(elements.audioVolumeInput.value);
+  renderAudioSettings();
+});
+elements.audioCountdownInput.addEventListener("change", () => {
+  sounds.setCountdownEnabled(elements.audioCountdownInput.checked);
+  renderAudioSettings();
+});
+elements.audioStepEndInput.addEventListener("change", () => {
+  sounds.setStepEndEnabled(elements.audioStepEndInput.checked);
+  renderAudioSettings();
 });
 elements.startButton.addEventListener("click", () => { sounds.resume(); engine.start(); });
 elements.pauseButton.addEventListener("click", () => { suppressNextSound = true; engine.pause(); });
@@ -445,12 +483,19 @@ document.addEventListener("visibilitychange", () => {
   engine?.tick();
   if (engine) syncWakeLock(engine.getSnapshot().state);
 });
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && audioPanelOpen) setAudioPanel(false);
+});
+document.addEventListener("click", (event) => {
+  if (audioPanelOpen && !elements.audioSettings.contains(event.target)) setAudioPanel(false);
+});
 
 function update() { engine?.tick(); requestAnimationFrame(update); }
 
 routines = initializeRoutines();
 renderRoutineList();
 showScreen("routines");
-renderSoundToggle();
+renderAudioSettings();
+setAudioPanel(false);
 registerServiceWorker();
 requestAnimationFrame(update);
